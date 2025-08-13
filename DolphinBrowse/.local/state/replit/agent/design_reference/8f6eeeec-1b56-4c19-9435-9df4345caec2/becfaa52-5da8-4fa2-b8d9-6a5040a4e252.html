@@ -1,0 +1,708 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentBrowse - Intelligent Browser Automation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" type="module"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif'],
+                },
+                colors: {
+                    primary: '#1976d2',
+                    secondary: '#388e3c',
+                    accent: '#f57c00',
+                    success: '#4caf50',
+                    warning: '#ff9800',
+                    error: '#f44336',
+                }
+            }
+        }
+    };
+    </script>
+</head>
+<body class="font-inter bg-gray-50 text-gray-900">
+
+    <!-- @COMPONENT: Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <span class="ml-3 text-xl font-semibold text-gray-900">AgentBrowse</span>
+                    </div>
+                    <div class="hidden md:ml-10 md:flex md:space-x-8">
+                        <a href="#features" class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Features</a>
+                        <a href="#pricing" class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Pricing</a>
+                        <a href="#docs" class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Docs</a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium">Sign In</button>
+                    <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        Start Free Trial
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: Navigation -->
+
+    <!-- @COMPONENT: Hero Section -->
+    <section class="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                    Intelligent Browser<br>
+                    <span class="text-primary">Automation Platform</span>
+                </h1>
+                <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                    Automate complex web tasks with AI-powered browser agents. Upload files, analyze data, and let our intelligent system handle repetitive browser workflows.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="bg-primary text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors shadow-lg">
+                        Start 5-Day Free Trial
+                    </button>
+                    <button class="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-50 transition-colors">
+                        Watch Demo
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-4">
+                    15 minutes daily usage • 5 trial days within 30 days • No credit card required
+                </p>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Hero Section -->
+
+    <!-- @COMPONENT: Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Powerful Automation Features</h2>
+                <p class="text-xl text-gray-600">Everything you need to automate your browser workflows</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">AI-Powered Automation</h3>
+                    <p class="text-gray-600">Intelligent browser agents that understand context and adapt to different websites automatically.</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">File Processing</h3>
+                    <p class="text-gray-600">Upload and analyze PDFs, Word docs, Excel files, and CSVs with intelligent data extraction.</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Real-time Monitoring</h3>
+                    <p class="text-gray-600">Track automation progress with live updates and detailed logs via WebSocket connections.</p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Secure & Reliable</h3>
+                    <p class="text-gray-600">Firebase authentication, encrypted data handling, and enterprise-grade security.</p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1.5a1.5 1.5 0 011.5 1.5V12m3-12a9 9 0 11-9 9 9 9 0 019-9z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Pause & Resume</h3>
+                    <p class="text-gray-600">Premium feature to pause long-running automations and resume them later seamlessly.</p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="bg-gray-50 p-8 rounded-xl hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Data Export</h3>
+                    <p class="text-gray-600">Export results to Excel, CSV, or other formats with customizable templates and formatting.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Features Section -->
+
+    <!-- @COMPONENT: Dashboard Preview -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Intuitive Dashboard Experience</h2>
+                <p class="text-xl text-gray-600">Manage all your browser automation tasks from one central hub</p>
+            </div>
+            
+            <!-- Dashboard Mockup -->
+            <div class="bg-white rounded-xl shadow-2xl p-6 max-w-6xl mx-auto">
+                <!-- Dashboard Header -->
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                    <div class="flex items-center space-x-4">
+                        <!-- Profile Avatar -->
+                        <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-medium text-gray-600" data-mock="true">JD</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900" data-mock="true">John Doe</p>
+                            <p class="text-sm text-gray-500">Trial: 3 days left • 12m 30s remaining today</p>
+                        </div>
+                    </div>
+                    <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        Upgrade to Pro
+                    </button>
+                </div>
+                
+                <!-- Main Dashboard Layout -->
+                <div class="grid lg:grid-cols-3 gap-6">
+                    <!-- Left Panel - Agent Controls -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">Browser Agent</h3>
+                            
+                            <!-- Agent Status -->
+                            <div class="mb-4 p-3 bg-white rounded-lg border">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-700">Status</span>
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Running</span>
+                                </div>
+                                <div class="text-sm text-gray-600" data-mock="true">Analyzing uploaded document...</div>
+                            </div>
+                            
+                            <!-- Task Input -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Task Description</label>
+                                <textarea class="w-full p-3 border border-gray-300 rounded-lg text-sm" rows="3" placeholder="Describe what you want the agent to do..." data-mock="true">Extract data from the uploaded PDF and create a summary table</textarea>
+                            </div>
+                            
+                            <!-- Control Buttons -->
+                            <div class="space-y-2">
+                                <button class="w-full bg-primary text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                    Start Agent
+                                </button>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button class="bg-yellow-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors">
+                                        Pause
+                                    </button>
+                                    <button class="bg-red-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
+                                        Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- File Upload Zone -->
+                        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+                            <h3 class="font-semibold text-gray-900 mb-4">File Upload</h3>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                                <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <p class="text-sm text-gray-600">Drop files here or click to browse</p>
+                                <p class="text-xs text-gray-500 mt-1">PDF, DOCX, XLSX, CSV (max 25MB)</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Panel - Activity & Results -->
+                    <div class="lg:col-span-2">
+                        <!-- Tabs -->
+                        <div class="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
+                            <button class="flex-1 bg-white text-gray-900 py-2 px-4 rounded-md text-sm font-medium shadow-sm">
+                                Live Activity
+                            </button>
+                            <button class="flex-1 text-gray-600 py-2 px-4 rounded-md text-sm font-medium hover:bg-white hover:shadow-sm transition-all">
+                                Results
+                            </button>
+                            <button class="flex-1 text-gray-600 py-2 px-4 rounded-md text-sm font-medium hover:bg-white hover:shadow-sm transition-all">
+                                History
+                            </button>
+                        </div>
+                        
+                        <!-- Live Activity Feed -->
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 h-80 overflow-y-auto">
+                            <div class="space-y-3">
+                                <!-- Activity Item 1 -->
+                                <div class="flex items-start space-x-3 pb-3 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Document analysis started</p>
+                                        <p class="text-xs text-gray-500">2 minutes ago</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 2 -->
+                                <div class="flex items-start space-x-3 pb-3 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Extracted 156 data points</p>
+                                        <p class="text-xs text-gray-500">1 minute ago</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 3 -->
+                                <div class="flex items-start space-x-3 pb-3 border-b border-gray-100">
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Processing table structure</p>
+                                        <p class="text-xs text-gray-500">30 seconds ago</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Activity Item 4 -->
+                                <div class="flex items-start space-x-3">
+                                    <div class="w-2 h-2 bg-gray-300 rounded-full mt-2 animate-pulse"></div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Generating summary...</p>
+                                        <p class="text-xs text-gray-500">Now</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="mt-4 bg-white border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">Task Progress</span>
+                                <span class="text-sm text-gray-600">73%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 73%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Estimated time remaining: 2m 15s</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Dashboard Preview -->
+
+    <!-- @COMPONENT: Pricing Section -->
+    <section id="pricing" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
+                <p class="text-xl text-gray-600">Start with our generous trial, upgrade when you're ready</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!-- Free Trial -->
+                <div class="border-2 border-gray-200 rounded-xl p-8 hover:border-primary transition-colors">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Free Trial</h3>
+                        <div class="mb-4">
+                            <span class="text-4xl font-bold text-gray-900">₹0</span>
+                            <span class="text-gray-600 ml-1">for 30 days</span>
+                        </div>
+                        <p class="text-gray-600">Perfect for testing and small projects</p>
+                    </div>
+                    
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">5 trial days within 30 days</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">15 minutes daily usage</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">File upload & analysis</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Basic browser automation</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Real-time monitoring</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="w-full bg-gray-900 text-white py-3 px-6 rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                        Start Free Trial
+                    </button>
+                </div>
+                
+                <!-- Pro Plan -->
+                <div class="border-2 border-primary rounded-xl p-8 relative">
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <span class="bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
+                    </div>
+                    
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Pro Plan</h3>
+                        <div class="mb-4">
+                            <span class="text-4xl font-bold text-gray-900">₹999</span>
+                            <span class="text-gray-600 ml-1">/month</span>
+                        </div>
+                        <p class="text-gray-600">For professionals and growing teams</p>
+                    </div>
+                    
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Unlimited automation time</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Pause & resume tasks</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Advanced file processing</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Priority support</span>
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-gray-700">Export to multiple formats</span>
+                        </li>
+                    </ul>
+                    
+                    <button class="w-full bg-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                        Upgrade to Pro
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Pricing Section -->
+
+    <!-- @COMPONENT: Admin Dashboard Preview -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Powerful Admin Dashboard</h2>
+                <p class="text-xl text-gray-600">Complete visibility and control over your platform</p>
+            </div>
+            
+            <!-- Admin Dashboard Mockup -->
+            <div class="bg-white rounded-xl shadow-2xl p-6 max-w-6xl mx-auto">
+                <!-- Stats Cards -->
+                <div class="grid md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-blue-50 p-6 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-600 text-sm font-medium">Total Users</p>
+                                <p class="text-2xl font-bold text-blue-900" data-mock="true">2,847</p>
+                            </div>
+                            <div class="bg-blue-500 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-green-50 p-6 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-600 text-sm font-medium">Active Subscribers</p>
+                                <p class="text-2xl font-bold text-green-900" data-mock="true">1,249</p>
+                            </div>
+                            <div class="bg-green-500 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 p-6 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-yellow-600 text-sm font-medium">Running Sessions</p>
+                                <p class="text-2xl font-bold text-yellow-900" data-mock="true">47</p>
+                            </div>
+                            <div class="bg-yellow-500 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-purple-50 p-6 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-purple-600 text-sm font-medium">Monthly Revenue</p>
+                                <p class="text-2xl font-bold text-purple-900" data-mock="true">₹1.2M</p>
+                            </div>
+                            <div class="bg-purple-500 p-3 rounded-lg">
+                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity Table -->
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="font-semibold text-gray-900 mb-4">Recent User Activity</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-sm font-medium text-gray-600">
+                                    <th class="pb-3">User</th>
+                                    <th class="pb-3">Action</th>
+                                    <th class="pb-3">Status</th>
+                                    <th class="pb-3">Time</th>
+                                    <th class="pb-3">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm text-gray-900">
+                                <!-- @MAP: recentActivity.map(activity => ( -->
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gray-300 rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="font-medium" data-mock="true">john@company.com</p>
+                                                <p class="text-xs text-gray-500">Trial User</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3" data-mock="true">PDF Analysis</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Completed</span>
+                                    </td>
+                                    <td class="py-3 text-gray-600" data-mock="true">2 minutes ago</td>
+                                    <td class="py-3 text-gray-600" data-mock="true">3m 24s</td>
+                                </tr>
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gray-300 rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="font-medium" data-mock="true">sarah@startup.com</p>
+                                                <p class="text-xs text-gray-500">Pro User</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3" data-mock="true">Web Scraping</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Running</span>
+                                    </td>
+                                    <td class="py-3 text-gray-600" data-mock="true">5 minutes ago</td>
+                                    <td class="py-3 text-gray-600" data-mock="true">12m 15s</td>
+                                </tr>
+                                <tr class="border-t border-gray-200">
+                                    <td class="py-3">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 bg-gray-300 rounded-full mr-3"></div>
+                                            <div>
+                                                <p class="font-medium" data-mock="true">mike@agency.co</p>
+                                                <p class="text-xs text-gray-500">Pro User</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3" data-mock="true">Data Export</td>
+                                    <td class="py-3">
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Failed</span>
+                                    </td>
+                                    <td class="py-3 text-gray-600" data-mock="true">8 minutes ago</td>
+                                    <td class="py-3 text-gray-600" data-mock="true">1m 45s</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Admin Dashboard Preview -->
+
+    <!-- @COMPONENT: CTA Section -->
+    <section class="py-20 bg-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">Ready to Automate Your Workflows?</h2>
+            <p class="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+                Join thousands of professionals who save hours every day with intelligent browser automation
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="bg-white text-primary px-8 py-4 rounded-lg text-lg font-medium hover:bg-gray-50 transition-colors shadow-lg">
+                    Start Your Free Trial
+                </button>
+                <button class="border border-blue-300 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors">
+                    Schedule Demo
+                </button>
+            </div>
+            <p class="text-sm text-blue-200 mt-4">
+                No credit card required • 5 days trial • 15 minutes daily
+            </p>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: CTA Section -->
+
+    <!-- @COMPONENT: Footer -->
+    <footer class="bg-gray-900 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div>
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <span class="ml-3 text-xl font-semibold text-white">AgentBrowse</span>
+                    </div>
+                    <p class="text-gray-400 mb-4">Intelligent browser automation platform for modern workflows.</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M20 10c0-5.523-4.477-10-10-10S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.991 20 10z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M6.29 18.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0020 3.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.073 4.073 0 01.8 7.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 010 16.407a11.616 11.616 0 006.29 1.84"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.338 16.338H13.67V12.16c0-.995-.017-2.277-1.387-2.277-1.39 0-1.601 1.086-1.601 2.207v4.248H8.014v-8.59h2.559v1.174h.037c.356-.675 1.227-1.387 2.526-1.387 2.703 0 3.203 1.778 3.203 4.092v4.711zM5.005 6.575a1.548 1.548 0 11-.003-3.096 1.548 1.548 0 01.003 3.096zm-1.337 9.763H6.34v-8.59H3.667v8.59zM17.668 1H2.328C1.595 1 1 1.581 1 2.298v15.403C1 18.418 1.595 19 2.328 19h15.34c.734 0 1.332-.582 1.332-1.299V2.298C19 1.581 18.402 1 17.668 1z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Product -->
+                <div>
+                    <h3 class="text-white font-semibold mb-4">Product</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">API Documentation</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Integrations</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Support -->
+                <div>
+                    <h3 class="text-white font-semibold mb-4">Support</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Support</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Status Page</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Community</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Legal -->
+                <div>
+                    <h3 class="text-white font-semibold mb-4">Legal</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Cookie Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center">
+                <p class="text-gray-400">&copy; 2025 AgentBrowse. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <script>
+    (function() {
+        // TODO: Implement WebSocket connection for real-time updates
+        // TODO: Add authentication flow with Firebase
+        // TODO: Implement file upload with drag-and-drop
+        // TODO: Add payment integration with Razorpay
+        // TODO: Connect to backend APIs for agent control
+        
+        // Simple demo interactions for the mockup
+        const startAgentBtn = document.querySelector('button[data-event="click:startAgent"]');
+        const activityFeed = document.querySelector('.activity-feed');
+        
+        // Demo: Simulate real-time activity updates
+        function simulateActivity() {
+            const activities = [
+                'Browser agent started',
+                'Navigating to target website',
+                'Extracting data elements',
+                'Processing results',
+                'Task completed successfully'
+            ];
+            
+            // This would be replaced with real WebSocket implementation
+            console.log('Real-time activity simulation ready');
+        }
+        
+        // Initialize demo functionality
+        simulateActivity();
+    })();
+    </script>
+
+</body>
+</html>

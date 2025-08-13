@@ -1,0 +1,525 @@
+You said:
+0) Repository structure
+pgsql
+Copy
+Edit
+AgentBrowse/
+├─ server/
+│  ├─ package.json
+│  ├─ tsconfig.json
+│  ├─ .env.example
+│  ├─ prisma/
+│  │  └─ schema.prisma
+│  └─ src/
+│     ├─ index.ts
+│     ├─ middleware/
+│     │  ├─ auth.ts
+│     │  ├─ entitlement.ts
+│     │  └─ sizeLimit.ts
+│     ├─ routes/
+│     │  ├─ users.ts
+│     │  ├─ payments.razorpay.ts
+│     │  ├─ admin.ts
+│     │  ├─ files.upload.ts
+│     │  ├─ files.download.ts
+│     │  ├─ files.analyze.ts
+│     │  ├─ sheets.map.preview.ts
+│     │  └─ sheets.map.apply.ts
+│     ├─ services/
+│     │  ├─ time.ts
+│     │  ├─ trialRules.ts
+│     │  ├─ trialUsage.ts
+│     │  ├─ pythonAgent.ts
+│     │  ├─ xlsxWriter.ts
+│     │  ├─ mergeEngine.ts
+│     │  └─ email.ts
+│     └─ types/global.d.ts
+├─ python_backend/
+│  ├─ requirements.txt
+│  ├─ main.py                ← REPLACE (verbatim; includes pause/resume + watchdog)
+│  ├─ agent_browser_controller.py  ← REPLACE
+│  └─ websocket_manager.py         ← REPLACE
+└─ web/
+   ├─ package.json
+   ├─ vite.config.ts
+   └─ src/
+      ├─ main.tsx
+      ├─ App.tsx
+      ├─ pages/
+      │  ├─ Pricing.tsx
+      │  └─ AdminDashboard.tsx
+      ├─ components/
+      │  ├─ LeftPanel.tsx
+      │  ├─ RightPanel.tsx
+      │  ├─ FileDropzone.tsx
+      │  └─ SheetGridPreview.tsx
+      ├─ hooks/
+      │  └─ use-websocket.ts      ← REPLACE (your file)
+      └─ lib/firebase.ts
+1) SERVER (Node/Express/TypeScript)
+server/package.json
+json
+Copy
+Edit
+{
+  "name": "agentbrowse-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:gen": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.17.0",
+    "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
+    "express": "^4.18.2",
+    "form-data": "^4.0.0",
+    "luxon": "^3.5.0",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
+    "razorpay": "^2.9.5",
+    "sendgrid": "^5.2.3",
+    "@sendgrid/mail": "^7.7.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.17.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.4.5"
+  }
+}
+server/tsconfig.json
+json
+Copy
+Edit
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "types/**/*"]
+}
+server/.env.example
+ini
+Copy
+Edit
+PORT=7070
+MAX_UPLOAD_MB=25
+
+# Firebase Admin
+GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
+
+# Razorpay
+RAZORPAY_KEY_ID=your_key_id
+RAZORPAY_KEY_SECRET=your_key_secret
+PLAN_MONTHLY_ID=plan_xxxxxxxx
+
+# Sendgrid
+SENDGRID_API_KEY=SG.xxxxxxxx
+
+# Admin allowlist
+ADMIN_EMAILS=you@company.com,founder@company.com
+
+# Python backend
+PY_BACKEND=http://localhost:8000
+
+# CORS (optional)
+CORS_ORIGINS=http://localhost:5173
+server/prisma/schema.prisma
+prisma
+Copy
+Edit
+datasource db { provider = "sqlite" url = "file:./dev.db" } // swap to postgres in prod
+generator client { provider = "prisma-client-js" }
+
+model User {
+  id                      String   @id @default(cuid())
+  email                   String   @unique
+  name                    String?
+  authProvider            String
+  createdAt               DateTime @default(now())
+
+  // Trial controls
+  trialPeriodStartAt      DateTime?
+  trialPeriodEndsAt       DateTime?     // start + 30 days
+  trialUsedDates          Json?         // array of IST date keys used: ["2025-08-13", ...]
+  trialDailyKey           String?       // current IST date key
+  trialDailyUsedSeconds   Int           @default(0) // 0..900 (15min)
+
+  subscription            Subscription?
+  usageEvents             UsageEvent[]
+  emailLogs               EmailLog[]
+}
+
+model Subscription {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  provider           String
+  providerCustomerId String
+  providerSubId      String?
+  status             String   // "active" | "canceled" | "expired"
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id])
+}
+
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "login" | "upload" | "start_agent" | ...
+  meta      Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "welcome" | "receipt"
+  status    String   // "sent" | "failed"
+  meta      Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+server/src/types/global.d.ts
+ts
+Copy
+Edit
+declare namespace NodeJS {
+  interface ProcessEnv {
+    PORT?: string;
+    MAX_UPLOAD_MB?: string;
+    GOOGLE_APPLICATION_CREDENTIALS?: string;
+    RAZORPAY_KEY_ID?: string;
+    RAZORPAY_KEY_SECRET?: string;
+    PLAN_MONTHLY_ID?: string;
+    SENDGRID_API_KEY?: string;
+    ADMIN_EMAILS?: string;
+    PY_BACKEND?: string;
+    CORS_ORIGINS?: string;
+  }
+}
+server/src/services/time.ts
+ts
+Copy
+Edit
+import { DateTime } from "luxon";
+export const IST = "Asia/Kolkata";
+
+export function nowIST(): Date {
+  return DateTime.now().setZone(IST).toJSDate();
+}
+
+export function toISTKey(d: Date): string {
+  return DateTime.fromJSDate(d).setZone(IST).toFormat("yyyy-LL-dd");
+}
+
+export function secondsUntilMidnightIST(d?: Date): number {
+  const dt = (d ? DateTime.fromJSDate(d) : DateTime.now()).setZone(IST);
+  const end = dt.endOf("day");
+  return Math.max(0, Math.floor(end.diff(dt, "seconds").seconds));
+}
+server/src/services/trialRules.ts
+ts
+Copy
+Edit
+import { PrismaClient } from "@prisma/client";
+import { nowIST, toISTKey } from "./time";
+
+const db = new PrismaClient();
+const MAX_DAYS = 5;
+const DAILY_SECONDS = 15 * 60;
+const WINDOW_DAYS = 30;
+
+export async function getTrialState(email: string) {
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) return { allowed: false, reason: "NO_USER" as const };
+
+  const now = nowIST();
+  const todayKey = toISTKey(now);
+
+  // Initialize 30-day window on first use
+  let periodStart = user.trialPeriodStartAt;
+  let periodEnd = user.trialPeriodEndsAt;
+  if (!periodStart || !periodEnd) {
+    return { allowed: true, needInit: true, todayKey, usedDates: [], remainingDays: MAX_DAYS, dailyLeft: DAILY_SECONDS };
+  }
+
+  // Check 30-day window
+  if (now >= periodEnd) {
+    return { allowed: false, reason: "TRIAL_WINDOW_OVER" as const, todayKey, usedDates: user.trialUsedDates ?? [] };
+  }
+
+  const usedDates: string[] = Array.isArray(user.trialUsedDates) ? (user.trialUsedDates as string[]) : [];
+  const daysUsed = usedDates.length;
+  const remainingDays = Math.max(0, MAX_DAYS - daysUsed);
+
+  // Daily reset if new day
+  let dailyUsed = user.trialDailyUsedSeconds || 0;
+  if (user.trialDailyKey !== todayKey) {
+    dailyUsed = 0;
+  }
+  const dailyLeft = Math.max(0, DAILY_SECONDS - dailyUsed);
+
+  return {
+    allowed: true,
+    todayKey,
+    usedDates,
+    remainingDays,
+    dailyLeft
+  };
+}
+
+export async function consumeToday(email: string) {
+  const user = await db.user.findUnique({ where: { email } });
+  if (!user) throw new Error("NO_USER");
+  const now = nowIST();
+  const todayKey = toISTKey(now);
+
+  // Init 30-day window on first consumption
+  let usedDates: string[] = Array.isArray(user.trialUsedDates) ? (user.trialUsedDates as string[]) : [];
+  let data: any = {};
+
+  if (!user.trialPeriodStartAt || !user.trialPeriodEndsAt) {
+    const start = now;
+    const end = new Date(start.getTime() + WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    data.trialPeriodStartAt = start;
+    data.trialPeriodEndsAt = end;
+    usedDates = [];
+  }
+
+  // If new IST day, reset daily counters
+  if (user.trialDailyKey !== todayKey) {
+    data.trialDailyKey = todayKey;
+    data.trialDailyUsedSeconds = 0;
+  }
+
+  // Mark today as one of the 5 distinct days (if not already)
+  usedDates = usedDates.includes(todayKey) ? usedDates : [...usedDates, todayKey];
+  if (usedDates.length > MAX_DAYS) throw new Error("TRIAL_DAYS_EXHAUSTED");
+
+  data.trialUsedDates = usedDates;
+
+  await db.user.update({ where: { id: user.id }, data });
+  return { todayKey, usedDates };
+}
+
+export const TRIAL_CONSTANTS = { MAX_DAYS, DAILY_SECONDS, WINDOW_DAYS };
+server/src/services/trialUsage.ts
+ts
+Copy
+Edit
+import { PrismaClient } from "@prisma/client";
+import { nowIST, secondsUntilMidnightIST } from "./time";
+import { stopAgent } from "./pythonAgent";
+
+const db = new PrismaClient();
+
+// In-memory per-user timers and live sessions
+const RUNNING = new Map<string, { start: number; sessions: Set<string> }>();
+const SESSIONS_BY_USER = new Map<string, Set<string>>();
+
+export async function beginTrialSession(email: string, sessionId: string) {
+  const now = nowIST().getTime();
+  const cur = RUNNING.get(email) || { start: now, sessions: new Set() };
+  cur.start = now;
+  cur.sessions.add(sessionId);
+  RUNNING.set(email, cur);
+
+  const map = SESSIONS_BY_USER.get(email) || new Set();
+  map.add(sessionId);
+  SESSIONS_BY_USER.set(email, map);
+
+  return secondsUntilMidnightIST();
+}
+
+export async function endTrialSession(email: string, sessionId: string) {
+  const cur = RUNNING.get(email);
+  if (cur) {
+    cur.sessions.delete(sessionId);
+    const deltaSec = Math.max(0, Math.floor((nowIST().getTime() - cur.start) / 1000));
+    RUNNING.delete(email);
+
+    const user = await db.user.findUnique({ where: { email } });
+    if (user) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { trialDailyUsedSeconds: (user.trialDailyUsedSeconds || 0) + deltaSec }
+      });
+    }
+  }
+}
+
+export async function resetUserSessions(email: string) {
+  const sessions = Array.from(SESSIONS_BY_USER.get(email) || []);
+  await Promise.allSettled(sessions.map((sid) => stopAgent(sid)));
+  RUNNING.delete(email);
+  SESSIONS_BY_USER.delete(email);
+}
+server/src/services/pythonAgent.ts
+ts
+Copy
+Edit
+import fetch from "node-fetch";
+
+const PY = process.env.PY_BACKEND || "http://localhost:8000";
+
+export async function startAgent(sessionId: string, task: string, model?: string, maxSeconds?: number) {
+  const body = new URLSearchParams();
+  body.set("task", task);
+  body.set("session_id", sessionId);
+  if (model) body.set("model", model);
+  if (maxSeconds !== undefined) body.set("max_seconds", String(maxSeconds)); // watchdog
+
+  const r = await fetch(${PY}/start, { method: "POST", body });
+  return r.json();
+}
+
+export async function stopAgent(sessionId: string) {
+  const body = new URLSearchParams();
+  body.set("session_id", sessionId);
+  const r = await fetch(${PY}/stop, { method: "POST", body });
+  return r.json();
+}
+
+export async function pauseAgent(sessionId: string) {
+  const body = new URLSearchParams();
+  body.set("session_id", sessionId);
+  const r = await fetch(${PY}/pause, { method: "POST", body });
+  return r.json();
+}
+
+export async function resumeAgent(sessionId: string) {
+  const body = new URLSearchParams();
+  body.set("session_id", sessionId);
+  const r = await fetch(${PY}/resume, { method: "POST", body });
+  return r.json();
+}
+
+export async function getStatus(sessionId: string) {
+  const r = await fetch(${PY}/status/${sessionId});
+  return r.json();
+}
+server/src/middleware/sizeLimit.ts
+ts
+Copy
+Edit
+import multer from "multer";
+import { RequestHandler } from "express";
+
+export function sizeLimit(maxMb: number): [RequestHandler, RequestHandler] {
+  const upload = multer({ limits: { fileSize: maxMb * 1024 * 1024 } });
+  return [upload.any(), (req, _res, next) => next()];
+}
+server/src/middleware/auth.ts
+ts
+Copy
+Edit
+import admin from "firebase-admin";
+import { Request, Response, NextFunction } from "express";
+
+let inited = false;
+function ensureFirebase() {
+  if (!inited) {
+    admin.initializeApp({ credential: admin.credential.applicationDefault() });
+    inited = true;
+  }
+}
+
+export async function authRequired(req: Request, res: Response, next: NextFunction) {
+  ensureFirebase();
+  const hdr = req.headers.authorization || "";
+  const token = hdr.startsWith("Bearer ") ? hdr.slice(7) : "";
+  if (!token) return res.status(401).json({ error: "NO_TOKEN" });
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    (req as any).uid = decoded.uid;
+    (req as any).email = decoded.email;
+    next();
+  } catch {
+    res.status(401).json({ error: "INVALID_TOKEN" });
+  }
+}
+server/src/middleware/entitlement.ts
+ts
+Copy
+Edit
+import { Request, Response, NextFunction } from "express";
+import { PrismaClient } from "@prisma/client";
+import { nowIST, toISTKey } from "../services/time";
+import { getTrialState, consumeToday, TRIAL_CONSTANTS } from "../services/trialRules";
+import { resetUserSessions } from "../services/trialUsage";
+
+const db = new PrismaClient();
+
+export async function requirePremium(req: Request, res: Response, next: NextFunction) {
+  const email = (req as any).email as string;
+  if (!email) return res.status(401).json({ error: "UNAUTHENTICATED" });
+
+  const user = await db.user.findUnique({ where: { email }, include: { subscription: true } });
+  if (!user) return res.status(401).json({ error: "UNAUTHENTICATED" });
+
+  const now = nowIST();
+
+  // Subscribers pass
+  const subActive =
+    user.subscription?.status === "active" &&
+    user.subscription.currentPeriodEnd &&
+    now < user.subscription.currentPeriodEnd;
+  if (subActive) return next();
+
+  // Trial evaluation
+  const state = await getTrialState(email);
+  if (!state.allowed) {
+    await resetUserSessions(email);
+    return res.status(402).json({ error: "PAYMENT_REQUIRED", reason: state.reason || "TRIAL_NOT_ALLOWED" });
+  }
+
+  // If need initialization (first ever trial use), or new trial day consumption, consume a day
+  if ((state as any).needInit || (state.remainingDays > 0 && !state.usedDates.includes(state.todayKey))) {
+    try {
+      await consumeToday(email);
+    } catch (e: any) {
+      await resetUserSessions(email);
+      return res.status(402).json({ error: "PAYMENT_REQUIRED", reason: e.message || "TRIAL_DAYS_EXHAUSTED" });
+    }
+  }
+
+  // Daily seconds remaining check
+  const todayKey = toISTKey(now);
+  const dailyUsed = user.trialDailyKey === todayKey ? (user.trialDailyUsedSeconds || 0) : 0;
+  const dailyLeft = Math.max(0, TRIAL_CONSTANTS.DAILY_SECONDS - dailyUsed);
+  if (dailyLeft <= 0) {
+    await resetUserSessions(email);
+    return res.status(402).json({ error: "PAYMENT_REQUIRED", reason: "DAILY_LIMIT_REACHED" });
+  }
+
+  // Stash remaining seconds for watchdog
+  (req as any).__trialRemainingSeconds = dailyLeft;
+  next();
+}
+
+/** Paid-only gate */
+export async function isSubscriber(req: Request, res: Response, next: NextFunction) {
+  const email = (req as any).email as string;
+  const user = await db.user.findUnique({ where: { email }, include: { subscription: true } });
+  const now = nowIST();
+  const ok =
+    !!user &&
+    user.subscription?.status === "active" &&
+    user.subscription.currentPeriodEnd &&
+    now < user.subscription.currentPeriodEnd;
+  if (!ok) return res.status(402).json({ error: "SUBSCRIBER_ONLY" });
+  next();
+}
