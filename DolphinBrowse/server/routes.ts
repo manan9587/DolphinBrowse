@@ -5,11 +5,12 @@ import { storage } from "./storage";
 import { verifyFirebaseToken } from "./services/auth";
 import { createRazorpayOrder, verifyRazorpayPayment } from "./services/payment";
 import { sendEmail } from "./services/email";
-import { insertUserSchema, insertSessionSchema, insertActivityLogSchema, insertUsageTrackingSchema, insertPaymentSchema } from "@shared/schema";
+import { insertUserSchema, insertSessionSchema, insertActivityLogSchema, insertUsageTrackingSchema, insertPaymentSchema, automationSessionSchema } from "@shared/schema";
 import { z } from "zod";
-
-// WebSocket connection tracking
-const sessionConnections = new Map<string, Set<WebSocket>>();
+import { subscribe, unsubscribe, broadcast } from "./services/websocket-manager";
+import { startAgent, stopAgent, pauseAgent, resumeAgent } from "./services/python-agent-service";
+import { beginSession, endSession, getTrialBudgetSecondsLeft } from "./services/trial";
+import { files } from "./routes.files";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -23,13 +24,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        
         if (message.type === 'subscribe' && message.sessionId) {
-          // Subscribe to session updates
-          if (!sessionConnections.has(message.sessionId)) {
-            sessionConnections.set(message.sessionId, new Set());
-          }
-          sessionConnections.get(message.sessionId)!.add(ws);
+          subscribe(message.sessionId, ws);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -37,28 +33,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('close', () => {
-      // Remove from all session subscriptions
-      for (const [sessionId, connections] of Array.from(sessionConnections.entries())) {
-        connections.delete(ws);
-        if (connections.size === 0) {
-          sessionConnections.delete(sessionId);
-        }
-      }
+      unsubscribe(ws);
     });
   });
 
-  // Broadcast message to session subscribers
-  function broadcastToSession(sessionId: string, message: any) {
-    const connections = sessionConnections.get(sessionId);
-    if (connections) {
-      const messageStr = JSON.stringify(message);
-      connections.forEach(ws => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(messageStr);
-        }
-      });
-    }
-  }
+  // File routes
+  app.use(files);
+
+  // Agent control routes with trial enforcement
+  app.post('/api/agent/start', async (req, res) => {
+    const { sessionId, task, model, userKey } = req.body || {};
+    if (!sessionId || !task) return res.status(400).json({ error: 'BAD_REQUEST' });
+    const maxSeconds = beginSession(userKey || 'dev');
+    if (maxSeconds <= 0) return res.status(402).json({ error: 'TRIAL_EXHAUSTED' });
+    await startAgent(sessionId, task, model, maxSeconds);
+    res.json({ ok: true, maxSeconds });
+  });
+
+  app.post('/api/agent/stop', async (req, res) => {
+    const { sessionId, userKey } = req.body || {};
+    if (!sessionId) return res.status(400).json({ error: 'BAD_REQUEST' });
+    endSession(userKey || 'dev');
+    await stopAgent(sessionId);
+    res.json({ ok: true });
+  });
+
+  app.post('/api/agent/pause', async (req, res) => {
+    const { sessionId } = req.body || {};
+    await pauseAgent(sessionId);
+    res.json({ ok: true });
+  });
+
+  app.post('/api/agent/resume', async (req, res) => {
+    const { sessionId, userKey } = req.body || {};
+    const maxSeconds = getTrialBudgetSecondsLeft(userKey || 'dev');
+    await resumeAgent(sessionId, maxSeconds);
+    res.json({ ok: true });
+  });
 
   // Auth routes
   app.post('/api/auth/verify', async (req, res) => {
@@ -96,14 +107,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/sessions', async (req, res) => {
     try {
       const sessionData = insertSessionSchema.parse(req.body);
-      
-      // Check trial usage limits
-      const todayUsage = await storage.getTodayUsage(sessionData.userId);
+
+      const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const today = nowIst.toISOString().substring(0, 10);
+      const todayUsage = await storage.getUsageByDate(sessionData.userId, today);
+      const distinctDays = await storage.getDistinctUsageDaysLast30(sessionData.userId);
       const user = await storage.getUser(sessionData.userId);
-      
+
       if (user?.subscriptionTier === 'trial') {
         if (todayUsage && (todayUsage.minutesUsed || 0) >= 15) {
-          return res.status(429).json({ message: 'Daily trial limit exceeded' });
+          return res.status(429).json({ message: 'Daily trial limit reached' });
+        }
+        if (distinctDays.length >= 5) {
+          return res.status(429).json({ message: 'Trial days exhausted' });
         }
       }
 
@@ -131,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: 'success',
           });
 
-          broadcastToSession(session.id, {
+          broadcast(session.id, {
             type: 'status',
             data: { status: 'running' },
             timestamp: new Date().toISOString(),
@@ -175,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      broadcastToSession(id, {
+      broadcast(id, {
         type: 'status',
         data: { status: updates.status },
         timestamp: new Date().toISOString(),
@@ -198,24 +214,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/usage/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
-      const todayUsage = await storage.getTodayUsage(userId);
-      const allUsage = await storage.getUsageByUser(userId);
-      
-      // Calculate trial days used
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentUsage = allUsage.filter(usage => 
-        usage.date && new Date(usage.date) >= thirtyDaysAgo
-      );
-      
-      const trialDaysUsed = recentUsage.length;
-      const minutesUsed = todayUsage?.minutesUsed || 0;
+      const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const today = nowIst.toISOString().substring(0, 10);
+      const todayUsage = await storage.getUsageByDate(userId, today);
+      const distinctDays = await storage.getDistinctUsageDaysLast30(userId);
 
       res.json({
-        minutesUsed,
-        trialDaysUsed,
-        firstTrialDate: recentUsage[0]?.date,
+        minutesUsed: todayUsage?.minutesUsed || 0,
+        trialDaysUsed: distinctDays.length,
+        firstTrialDate: distinctDays[0],
       });
     } catch (error) {
       console.error('Usage tracking error:', error);
@@ -364,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Broadcast to connected clients
-      broadcastToSession(sessionId, {
+      broadcast(sessionId, {
         type: 'activity',
         data: { sessionId, message, status: status || 'info' },
         timestamp: new Date().toISOString(),
@@ -385,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateSession(sessionId, { currentUrl });
 
       // Broadcast viewport update
-      broadcastToSession(sessionId, {
+      broadcast(sessionId, {
         type: 'status',
         data: { currentUrl },
         timestamp: new Date().toISOString(),

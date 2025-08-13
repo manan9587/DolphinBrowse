@@ -22,6 +22,8 @@ export interface IStorage {
   // Usage tracking methods
   getUsageByUser(userId: string): Promise<UsageTracking[]>;
   getTodayUsage(userId: string): Promise<UsageTracking | undefined>;
+  getUsageByDate(userId: string, date: string): Promise<UsageTracking | undefined>;
+  getDistinctUsageDaysLast30(userId: string): Promise<string[]>;
   createOrUpdateUsage(usage: InsertUsageTracking): Promise<UsageTracking>;
 
   // Payment methods
@@ -156,8 +158,31 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getUsageByDate(userId: string, date: string): Promise<UsageTracking | undefined> {
+    return Array.from(this.usageTracking.values()).find(
+      usage => usage.userId === userId && usage.date && new Date(usage.date).toISOString().substring(0,10) === date
+    );
+  }
+
+  async getDistinctUsageDaysLast30(userId: string): Promise<string[]> {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const days = new Set<string>();
+    Array.from(this.usageTracking.values()).forEach(u => {
+      if (u.userId === userId && u.date) {
+        const d = new Date(u.date);
+        if (d >= thirtyDaysAgo) {
+          days.add(d.toISOString().substring(0,10));
+        }
+      }
+    });
+    return Array.from(days).sort();
+  }
+
   async createOrUpdateUsage(insertUsage: InsertUsageTracking): Promise<UsageTracking> {
-    const existing = await this.getTodayUsage(insertUsage.userId);
+    const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const today = nowIst.toISOString().substring(0,10);
+    const existing = await this.getUsageByDate(insertUsage.userId, today);
     
     if (existing) {
       const updated = {
@@ -175,7 +200,7 @@ export class MemStorage implements IStorage {
     const usage: UsageTracking = {
       ...insertUsage,
       id,
-      date: new Date(),
+      date: nowIst,
       minutesUsed: insertUsage.minutesUsed ?? 0,
       sessionsCount: insertUsage.sessionsCount ?? 0,
       trialDaysUsed: insertUsage.trialDaysUsed ?? null,

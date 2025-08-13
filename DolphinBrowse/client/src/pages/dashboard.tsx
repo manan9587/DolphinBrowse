@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { useWebSocket } from '@/hooks/use-websocket';
+import { useWebsocket } from '@/hooks/use-websocket';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BrowserViewport } from '@/components/browser-viewport';
 import { ActivityLog } from '@/components/activity-log';
 import { TaskControl } from '@/components/task-control';
+import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { useToast } from '@/hooks/use-toast';
 import type { ActivityLog as ActivityLogType, Session } from '@shared/schema';
 
@@ -23,7 +24,8 @@ export default function Dashboard() {
   const [activities, setActivities] = useState<ActivityLogType[]>([]);
   const [remainingTime, setRemainingTime] = useState('15:00');
 
-  const { isConnected, lastMessage } = useWebSocket(currentSession);
+  const { connected, messages } = useWebsocket(currentSession);
+  const lastMessage = messages[messages.length - 1];
 
   // Check trial usage
   const { data: usageData } = useQuery({
@@ -170,29 +172,28 @@ export default function Dashboard() {
       </nav>
 
       {/* Main Dashboard */}
-      <div className="flex h-screen bg-gray-50">
-        {/* Left Panel - Activity & Controls */}
-        <div className="w-2/5 bg-white border-r border-gray-200 flex flex-col">
-          <TaskControl
-            onSessionStart={handleSessionStart}
-            onSessionStop={handleSessionStop}
-            currentSession={currentSession}
-            sessionStatus={sessionStatus}
-            remainingTime={remainingTime}
-          />
-          
-          <ActivityLog activities={activities} />
-        </div>
-
-        {/* Right Panel - Browser Viewport */}
-        <div className="flex-1 bg-gray-100 p-6">
+      <PanelGroup direction="horizontal" className="flex h-screen bg-gray-50">
+        <Panel defaultSize={30} className="bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-4 space-y-4">
+            <TaskControl
+              onSessionStart={handleSessionStart}
+              onSessionStop={handleSessionStop}
+              currentSession={currentSession}
+              sessionStatus={sessionStatus}
+              remainingTime={remainingTime}
+            />
+          </div>
+          <ActivityLog activities={activities} className="flex-1" />
+        </Panel>
+        <PanelResizeHandle className="w-1 bg-gray-200" />
+        <Panel className="flex-1 bg-gray-100 p-6">
           <BrowserViewport
             sessionId={currentSession}
             currentUrl={currentUrl}
-            isConnected={isConnected}
+            isConnected={connected}
           />
-        </div>
-      </div>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

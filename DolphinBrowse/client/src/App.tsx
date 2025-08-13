@@ -9,12 +9,14 @@ import Login from "@/pages/login";
 import Pricing from "@/pages/pricing";
 import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import AutomationDashboard from "@/pages/automation-dashboard";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/automation" component={AutomationDashboard} />
       <Route path="/login" component={Login} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/admin" component={Admin} />

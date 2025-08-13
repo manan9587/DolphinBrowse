@@ -86,6 +86,21 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
 });
 
+// Automation session schemas shared between Node and Python services
+export const automationSessionSchema = z.object({
+  sessionId: z.string(),
+  taskDescription: z.string(),
+  status: z.enum(['pending', 'running', 'completed', 'failed', 'paused']).optional(),
+  currentUrl: z.string().optional(),
+});
+
+export const automationLogSchema = z.object({
+  sessionId: z.string(),
+  message: z.string(),
+  status: z.enum(['info', 'success', 'warning', 'error']).default('info'),
+  timestamp: z.string().optional(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -97,3 +112,5 @@ export type UsageTracking = typeof usageTracking.$inferSelect;
 export type InsertUsageTracking = z.infer<typeof insertUsageTrackingSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type AutomationSession = z.infer<typeof automationSessionSchema>;
+export type AutomationLog = z.infer<typeof automationLogSchema>;
