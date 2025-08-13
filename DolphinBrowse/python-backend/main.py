@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 import uvicorn
 import asyncio
@@ -9,7 +9,8 @@ from typing import Dict, Optional
 import aiohttp
 from pydantic import BaseModel
 
-from browser_automation import BrowserAutomation
+from agent_browser_controller import AgentBrowserController
+from websocket_manager import WebSocketManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AgentBrowse Automation Backend", version="1.0.0")
 
-# Store active browser sessions
-active_sessions: Dict[str, BrowserAutomation] = {}
+# WebSocket manager and active sessions
+ws_manager = WebSocketManager()
+active_sessions: Dict[str, AgentBrowserController] = {}
 
 class SessionRequest(BaseModel):
     sessionId: str
@@ -56,6 +58,7 @@ async def log_activity(session_id: str, message: str, status: str = "info"):
         "message": message,
         "status": status
     })
+    await ws_manager.send_activity(session_id, message, status)
 
 async def update_viewport(session_id: str, current_url: str):
     """Update viewport URL and notify frontend"""
@@ -63,27 +66,37 @@ async def update_viewport(session_id: str, current_url: str):
         "sessionId": session_id,
         "currentUrl": current_url
     })
+    await ws_manager.send_viewport(session_id, current_url)
+
+
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str):
+    """WebSocket connection for real-time session updates."""
+    await ws_manager.connect(session_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(session_id, websocket)
 
 @app.post("/start-session")
 async def start_session(request: SessionRequest, background_tasks: BackgroundTasks):
     """Start a new browser automation session"""
     try:
         session_id = request.sessionId
-        
+
         if session_id in active_sessions:
             raise HTTPException(status_code=400, detail="Session already active")
-        
-        # Create new browser automation instance
-        browser_automation = BrowserAutomation(
+
+        controller = AgentBrowserController(
             session_id=session_id,
             task_description=request.taskDescription,
             model=request.model,
-            activity_callback=log_activity,
-            viewport_callback=update_viewport
+            websocket_manager=ws_manager,
         )
-        
-        active_sessions[session_id] = browser_automation
-        
+
+        active_sessions[session_id] = controller
+
         # Start automation in background
         background_tasks.add_task(run_automation_session, session_id)
         
@@ -99,26 +112,21 @@ async def start_session(request: SessionRequest, background_tasks: BackgroundTas
 async def run_automation_session(session_id: str):
     """Run the browser automation session"""
     try:
-        automation = active_sessions.get(session_id)
-        if not automation:
+        controller = active_sessions.get(session_id)
+        if not controller:
             return
-        
+
         await log_activity(session_id, "Starting browser instance", "info")
-        await automation.start_browser()
-        
-        await log_activity(session_id, "Analyzing task requirements", "info")
-        await automation.execute_task()
-        
+        await controller.start()
         await log_activity(session_id, "Automation completed successfully", "success")
-        
+
     except Exception as e:
         logger.error(f"Automation session {session_id} failed: {str(e)}")
         await log_activity(session_id, f"Automation failed: {str(e)}", "error")
     finally:
-        # Cleanup
-        automation = active_sessions.get(session_id)
-        if automation:
-            await automation.cleanup()
+        controller = active_sessions.get(session_id)
+        if controller:
+            await controller.cleanup()
             del active_sessions[session_id]
 
 @app.post("/update-session")
@@ -126,21 +134,18 @@ async def update_session(request: SessionUpdate):
     """Update session status (pause/resume/stop)"""
     try:
         session_id = request.sessionId
-        automation = active_sessions.get(session_id)
-        
-        if not automation:
+        controller = active_sessions.get(session_id)
+
+        if not controller:
             raise HTTPException(status_code=404, detail="Session not found")
-        
+
+        await controller.update_status(request.status)
         if request.status == "paused":
-            await automation.pause()
             await log_activity(session_id, "Session paused", "warning")
         elif request.status == "running":
-            await automation.resume()
             await log_activity(session_id, "Session resumed", "info")
         elif request.status == "completed":
-            await automation.stop()
             await log_activity(session_id, "Session stopped by user", "info")
-            await automation.cleanup()
             del active_sessions[session_id]
         
         return {"success": True}
@@ -153,13 +158,13 @@ async def update_session(request: SessionUpdate):
 async def get_viewport_stream(session_id: str):
     """Stream browser viewport for given session"""
     try:
-        automation = active_sessions.get(session_id)
-        if not automation:
+        controller = active_sessions.get(session_id)
+        if not controller:
             raise HTTPException(status_code=404, detail="Session not found")
         
         async def generate_viewport():
             try:
-                async for frame in automation.get_viewport_stream():
+                async for frame in controller.automation.get_viewport_stream():
                     yield frame
             except Exception as e:
                 logger.error(f"Viewport stream error: {str(e)}")
@@ -191,13 +196,13 @@ async def health_check():
 async def list_sessions():
     """List all active sessions"""
     sessions = []
-    for session_id, automation in active_sessions.items():
+    for session_id, controller in active_sessions.items():
         sessions.append({
             "sessionId": session_id,
-            "status": automation.status,
-            "taskDescription": automation.task_description,
-            "startTime": automation.start_time,
-            "currentUrl": automation.current_url
+            "status": controller.automation.status,
+            "taskDescription": controller.automation.task_description,
+            "startTime": controller.automation.start_time,
+            "currentUrl": controller.automation.current_url
         })
     return {"sessions": sessions}
 
