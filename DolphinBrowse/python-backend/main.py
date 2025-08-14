@@ -1,9 +1,11 @@
 import asyncio
 from typing import Dict
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from websocket_manager import WebSocketManager
 from agent_browser_controller import AgentBrowserController
+from file_processor import FileProcessor
 import subprocess
 
 app = FastAPI()
@@ -58,19 +60,27 @@ async def stop_session(payload: SessionIdPayload):
 
 @app.post("/pause-session")
 async def pause_session(payload: SessionIdPayload):
-  controller = active_sessions.get(payload.sessionId)
-  if controller:
-    await controller.pause(ws_manager.send_activity)
-  return {"ok": True}
+    controller = active_sessions.get(payload.sessionId)
+    if controller:
+        await controller.pause(ws_manager.send_activity)
+    return {"ok": True}
 
 @app.post("/resume-session")
 async def resume_session(payload: SessionIdPayload):
-  controller = active_sessions.get(payload.sessionId)
-  if not controller:
-    raise HTTPException(status_code=404, detail="NOT_FOUND")
-  await controller.resume(ws_manager.send_activity, ws_manager.send_viewport, payload.maxSeconds or 60)
-  return {"ok": True}
+    controller = active_sessions.get(payload.sessionId)
+    if not controller:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+    await controller.resume(ws_manager.send_activity, ws_manager.send_viewport, payload.maxSeconds or 60)
+    return {"ok": True}
 
 @app.get("/status/{session_id}")
 async def status(session_id: str):
-  return {"running": session_id in active_sessions}
+    return {"running": session_id in active_sessions}
+
+@app.post("/api/files/{file_id}/analyze")
+async def analyze_file(file_id: str):
+    upload_path = f"/tmp/uploads/{file_id}"
+    processor = FileProcessor()
+    results = processor.analyze(upload_path)
+    out_path = processor.generate_remarks_excel(results, f"/tmp/remarks_{file_id}.xlsx")
+    return FileResponse(out_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="remarks.xlsx")

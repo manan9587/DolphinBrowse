@@ -15,13 +15,8 @@ class AgentBrowserController:
         self._agent: Optional[Agent] = None
 
     async def start(self, activity_cb: ActivityCb, viewport_cb: ViewportCb, max_seconds: int) -> None:
-        llm = ChatOpenAI(model=self.model)
-        self._agent = Agent(task=self.task, llm=llm, use_vision=True,
-                            activity_callback=lambda m, s="info": activity_cb(self.session_id, m, s),
-                            viewport_callback=lambda url: viewport_cb(self.session_id, url))
-
         async def run_agent():
-            await self._agent.run()
+            await self._generate_action_plan(activity_cb, viewport_cb)
         self._task = asyncio.create_task(run_agent())
         try:
             await asyncio.wait_for(self._task, timeout=max_seconds)
@@ -43,3 +38,11 @@ class AgentBrowserController:
         if self._task and not self._task.done():
             self._task.cancel()
         await activity_cb(self.session_id, "stopped", "info")
+
+    async def _generate_action_plan(self, activity_cb: ActivityCb, viewport_cb: ViewportCb):
+        llm = ChatOpenAI(model=self.model)
+        self._agent = Agent(task=self.task, llm=llm, use_vision=True,
+                            activity_callback=lambda m, s="info": activity_cb(self.session_id, m, s),
+                            viewport_callback=lambda url: viewport_cb(self.session_id, url))
+        plan = await self._agent.run()
+        return getattr(plan, 'steps', [])
