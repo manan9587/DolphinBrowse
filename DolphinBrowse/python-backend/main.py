@@ -1,68 +1,117 @@
+# server.py
+from __future__ import annotations
+
 import asyncio
-from typing import Dict
+import subprocess
+from typing import Dict, Optional
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+
 from websocket_manager import WebSocketManager
 from agent_browser_controller import AgentBrowserController
-from file_processor import FileProcessor
-import subprocess
 
-app = FastAPI()
+# If you use file analysis, keep this import; otherwise you can remove the
+# route and this import.
+try:
+    from file_processor import FileProcessor  # optional
+    HAVE_FILE_PROCESSOR = True
+except Exception:
+    HAVE_FILE_PROCESSOR = False
+
+# ---------------------- App & State ----------------------
+app = FastAPI(title="AgentBrowse Automation Backend", version="1.0.0")
 ws_manager = WebSocketManager()
 active_sessions: Dict[str, AgentBrowserController] = {}
 
+# ---------------------- Models ---------------------------
 class StartPayload(BaseModel):
-  sessionId: str
-  task: str
-  model: str | None = None
-  maxSeconds: int | None = None
+    sessionId: str
+    task: str
+    model: Optional[str] = None
+    maxSeconds: Optional[int] = None  # total run time cap
 
 class SessionIdPayload(BaseModel):
-  sessionId: str
-  maxSeconds: int | None = None
+    sessionId: str
+    maxSeconds: Optional[int] = None  # used for resume()
 
+# ---------------------- Startup --------------------------
 @app.on_event("startup")
 async def setup() -> None:
-  try:
-    subprocess.run(["python", "-m", "playwright", "install", "chromium"], check=False)
-  except Exception:
-    pass
+    # Best-effort ensure Chromium is present (no-op if already installed)
+    try:
+        subprocess.run(
+            ["python", "-m", "playwright", "install", "chromium"],
+            check=False,
+            capture_output=True,
+        )
+    except Exception:
+        pass
 
+# ---------------------- Health ---------------------------
 @app.get("/health")
 async def health():
-  return {"ok": True, "sessions": len(active_sessions)}
+    return {"ok": True, "sessions": len(active_sessions)}
 
+# ---------------------- WebSocket ------------------------
 @app.websocket("/ws/{session_id}")
 async def ws_endpoint(websocket: WebSocket, session_id: str):
-  await ws_manager.connect(session_id, websocket)
-  try:
-    while True:
-      await websocket.receive_text()
-  except WebSocketDisconnect:
-    ws_manager.disconnect(session_id, websocket)
+    await ws_manager.connect(session_id, websocket)
+    try:
+        while True:
+            # We keep the socket open; we don't need client messages.
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(session_id, websocket)
 
+# ---------------------- Helpers --------------------------
+async def _run_session(controller: AgentBrowserController, session_id: str, max_seconds: int) -> None:
+    try:
+        # AgentBrowserController.start(timeout=...)
+        await controller.start(timeout=max_seconds)
+    finally:
+        # Always cleanup and remove from registry
+        try:
+            await controller.cleanup()
+        finally:
+            active_sessions.pop(session_id, None)
+
+# ---------------------- REST: control --------------------
 @app.post("/start-session")
 async def start_session(payload: StartPayload):
-  if payload.sessionId in active_sessions:
-    raise HTTPException(status_code=400, detail="ALREADY_RUNNING")
-  controller = AgentBrowserController(payload.sessionId, payload.task, payload.model or "gpt-4o-mini")
-  active_sessions[payload.sessionId] = controller
-  asyncio.create_task(controller.start(ws_manager.send_activity, ws_manager.send_viewport, payload.maxSeconds or 60))
-  return {"ok": True}
+    if payload.sessionId in active_sessions:
+        raise HTTPException(status_code=400, detail="ALREADY_RUNNING")
+
+    controller = AgentBrowserController(
+        session_id=payload.sessionId,
+        task_description=payload.task,
+        model=payload.model or "gpt-4o-mini",
+        websocket_manager=ws_manager,  # routes activity/viewport to sockets
+    )
+    active_sessions[payload.sessionId] = controller
+
+    # Fire and forget; controller removes itself on completion
+    asyncio.create_task(
+        _run_session(controller, payload.sessionId, payload.maxSeconds or 120)
+    )
+    return {"ok": True, "sessionId": payload.sessionId}
 
 @app.post("/stop-session")
 async def stop_session(payload: SessionIdPayload):
-  controller = active_sessions.pop(payload.sessionId, None)
-  if controller:
-    await controller.stop(ws_manager.send_activity)
-  return {"ok": True}
+    controller = active_sessions.get(payload.sessionId)
+    if controller:
+        await controller.stop()
+        await controller.cleanup()
+        active_sessions.pop(payload.sessionId, None)
+    return {"ok": True}
 
 @app.post("/pause-session")
 async def pause_session(payload: SessionIdPayload):
     controller = active_sessions.get(payload.sessionId)
-    if controller:
-        await controller.pause(ws_manager.send_activity)
+    if not controller:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+    await controller.pause()
     return {"ok": True}
 
 @app.post("/resume-session")
@@ -70,17 +119,24 @@ async def resume_session(payload: SessionIdPayload):
     controller = active_sessions.get(payload.sessionId)
     if not controller:
         raise HTTPException(status_code=404, detail="NOT_FOUND")
-    await controller.resume(ws_manager.send_activity, ws_manager.send_viewport, payload.maxSeconds or 60)
+    # AgentBrowserController.resume(timeout=...)
+    await controller.resume(timeout=payload.maxSeconds or 120)
     return {"ok": True}
 
 @app.get("/status/{session_id}")
 async def status(session_id: str):
     return {"running": session_id in active_sessions}
 
-@app.post("/api/files/{file_id}/analyze")
-async def analyze_file(file_id: str):
-    upload_path = f"/tmp/uploads/{file_id}"
-    processor = FileProcessor()
-    results = processor.analyze(upload_path)
-    out_path = processor.generate_remarks_excel(results, f"/tmp/remarks_{file_id}.xlsx")
-    return FileResponse(out_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="remarks.xlsx")
+# ---------------------- Optional: file analyze ------------
+if HAVE_FILE_PROCESSOR:
+    @app.post("/api/files/{file_id}/analyze")
+    async def analyze_file(file_id: str):
+        upload_path = f"/tmp/uploads/{file_id}"
+        processor = FileProcessor()
+        results = processor.analyze(upload_path)
+        out_path = processor.generate_remarks_excel(results, f"/tmp/remarks_{file_id}.xlsx")
+        return FileResponse(
+            out_path,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename="remarks.xlsx",
+        )
