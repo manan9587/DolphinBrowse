@@ -1,27 +1,70 @@
-const PY_BACKEND = process.env.PY_BACKEND || 'http://localhost:8001';
+// services/python-agent-service.ts
+const BASE_URL =
+  process.env.PY_BACKEND ||
+  process.env.PYTHON_SERVICE_URL ||
+  "http://localhost:8001";
 
-async function post(path: string, body: any) {
-  const res = await fetch(`${PY_BACKEND}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body || {}),
+// Fallback to node-fetch on older Node
+async function postJSON(path: string, body: unknown): Promise<any> {
+  const f: typeof fetch =
+    (globalThis as any).fetch ?? (await import("node-fetch")).default as any;
+  const res = await f(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
   });
-  if (!res.ok) throw new Error(`Python service error: ${res.status}`);
-  return res.json();
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Python service error: ${res.status} ${res.statusText} ${text}`);
+  }
+  return res.json().catch(() => ({}));
 }
 
-export async function startAgent(sessionId: string, task: string, model?: string, maxSeconds?: number) {
-  return post('/start-session', { sessionId, taskDescription: task, model, maxSeconds });
+export type SessionStatus = "paused" | "running" | "completed";
+
+export interface AutomationStartPayload {
+  sessionId: string;
+  taskDescription: string;
+  model?: string;
+  maxSeconds?: number;
 }
 
-export async function stopAgent(sessionId: string) {
-  return post('/stop-session', { sessionId });
+/** New, preferred API */
+export async function startAutomation(payload: AutomationStartPayload) {
+  return postJSON("/start-session", payload);
+}
+
+export async function updateAutomationStatus(
+  sessionId: string,
+  status: SessionStatus
+) {
+  return postJSON("/update-session", { sessionId, status });
+}
+
+/** Legacy helpers kept for compatibility (delegate to the new API) */
+export async function startAgent(
+  sessionId: string,
+  task: string,
+  model?: string,
+  maxSeconds?: number
+) {
+  return startAutomation({
+    sessionId,
+    taskDescription: task,
+    model,
+    maxSeconds,
+  });
 }
 
 export async function pauseAgent(sessionId: string) {
-  return post('/pause-session', { sessionId });
+  return updateAutomationStatus(sessionId, "paused");
 }
 
 export async function resumeAgent(sessionId: string, maxSeconds?: number) {
-  return post('/resume-session', { sessionId, maxSeconds });
+  // If you want to extend remaining budget in Python, add it to /update-session there.
+  return updateAutomationStatus(sessionId, "running");
+}
+
+export async function stopAgent(sessionId: string) {
+  return updateAutomationStatus(sessionId, "completed");
 }

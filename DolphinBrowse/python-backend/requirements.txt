@@ -1,6 +1,13 @@
+# Core API + WS
 fastapi==0.111.0
 uvicorn==0.30.0
 websockets==12.0
 pydantic==2.8.2
+
+# Browser automation
 browser-use==0.1.0
 playwright==1.46.0
+
+# Optional utilities
+python-dotenv==1.0.0
+Pillow==10.1.0
