@@ -6,17 +6,26 @@ import subprocess
 from typing import Dict, Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from websocket_manager import WebSocketManager
 from agent_browser_controller import AgentBrowserController
+
+# If you use file analysis, keep this import; otherwise you can remove the
+# route and this import.
+try:
+    from file_processor import FileProcessor  # optional
+    HAVE_FILE_PROCESSOR = True
+except Exception:
+    HAVE_FILE_PROCESSOR = False
 
 # ---------------------- App & State ----------------------
 app = FastAPI(title="AgentBrowse Automation Backend", version="1.0.0")
 ws_manager = WebSocketManager()
 active_sessions: Dict[str, AgentBrowserController] = {}
 
-# ---------------------- Models --------------------------
+# ---------------------- Models ---------------------------
 class StartPayload(BaseModel):
     sessionId: str
     task: str
@@ -27,7 +36,7 @@ class SessionIdPayload(BaseModel):
     sessionId: str
     maxSeconds: Optional[int] = None  # used for resume()
 
-# ---------------------- Startup -------------------------
+# ---------------------- Startup --------------------------
 @app.on_event("startup")
 async def setup() -> None:
     # Best-effort ensure Chromium is present (no-op if already installed)
@@ -40,26 +49,27 @@ async def setup() -> None:
     except Exception:
         pass
 
-# ---------------------- Health --------------------------
+# ---------------------- Health ---------------------------
 @app.get("/health")
 async def health():
     return {"ok": True, "sessions": len(active_sessions)}
 
-# ---------------------- WebSocket -----------------------
+# ---------------------- WebSocket ------------------------
 @app.websocket("/ws/{session_id}")
 async def ws_endpoint(websocket: WebSocket, session_id: str):
     await ws_manager.connect(session_id, websocket)
     try:
         while True:
-            # Keep the socket open; messages from client are ignored
+            # We keep the socket open; we don't need client messages.
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(session_id, websocket)
 
-# ---------------------- Helpers -------------------------
+# ---------------------- Helpers --------------------------
 async def _run_session(controller: AgentBrowserController, session_id: str, max_seconds: int) -> None:
     try:
-        await controller.start(max_seconds=max_seconds)
+        # AgentBrowserController.start(timeout=...)
+        await controller.start(timeout=max_seconds)
     finally:
         # Always cleanup and remove from registry
         try:
@@ -67,7 +77,7 @@ async def _run_session(controller: AgentBrowserController, session_id: str, max_
         finally:
             active_sessions.pop(session_id, None)
 
-# ---------------------- REST: control -------------------
+# ---------------------- REST: control --------------------
 @app.post("/start-session")
 async def start_session(payload: StartPayload):
     if payload.sessionId in active_sessions:
@@ -77,7 +87,7 @@ async def start_session(payload: StartPayload):
         session_id=payload.sessionId,
         task_description=payload.task,
         model=payload.model or "gpt-4o-mini",
-        websocket_manager=ws_manager,    # routes activity/viewport to sockets
+        websocket_manager=ws_manager,  # routes activity/viewport to sockets
     )
     active_sessions[payload.sessionId] = controller
 
@@ -99,19 +109,34 @@ async def stop_session(payload: SessionIdPayload):
 @app.post("/pause-session")
 async def pause_session(payload: SessionIdPayload):
     controller = active_sessions.get(payload.sessionId)
-    if controller:
-        await controller.pause()
-        return {"ok": True}
-    raise HTTPException(status_code=404, detail="NOT_FOUND")
+    if not controller:
+        raise HTTPException(status_code=404, detail="NOT_FOUND")
+    await controller.pause()
+    return {"ok": True}
 
 @app.post("/resume-session")
 async def resume_session(payload: SessionIdPayload):
     controller = active_sessions.get(payload.sessionId)
     if not controller:
         raise HTTPException(status_code=404, detail="NOT_FOUND")
-    await controller.resume(max_seconds=payload.maxSeconds or 120)
+    # AgentBrowserController.resume(timeout=...)
+    await controller.resume(timeout=payload.maxSeconds or 120)
     return {"ok": True}
 
 @app.get("/status/{session_id}")
 async def status(session_id: str):
     return {"running": session_id in active_sessions}
+
+# ---------------------- Optional: file analyze ------------
+if HAVE_FILE_PROCESSOR:
+    @app.post("/api/files/{file_id}/analyze")
+    async def analyze_file(file_id: str):
+        upload_path = f"/tmp/uploads/{file_id}"
+        processor = FileProcessor()
+        results = processor.analyze(upload_path)
+        out_path = processor.generate_remarks_excel(results, f"/tmp/remarks_{file_id}.xlsx")
+        return FileResponse(
+            out_path,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            filename="remarks.xlsx",
+        )

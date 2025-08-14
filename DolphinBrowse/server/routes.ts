@@ -11,16 +11,18 @@ import {
   insertUserSchema,
   insertSessionSchema,
   insertPaymentSchema,
-  // NOTE: removed unused schemas to avoid TS warnings:
-  // insertActivityLogSchema, insertUsageTrackingSchema, automationSessionSchema
 } from "@shared/schema";
 
 import { subscribe, unsubscribe, broadcast } from "./services/websocket-manager";
+import { files } from "./routes.files";
 
 /** Helper: POST JSON using global fetch, or node-fetch if not present */
 async function postJSON(url: string, body: unknown): Promise<Response> {
   const f: typeof fetch =
-    (globalThis as any).fetch ?? (await import("node-fetch")).default as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).fetch ??
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    ((await import("node-fetch")).default as any);
   return f(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -50,6 +52,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on("close", () => {
       unsubscribe(ws);
     });
+  });
+
+  // File routes (upload/analyze)
+  app.use(files);
+
+  // ——— Back-compat thin wrappers for older UI (/api/agent/*) ———
+  app.post("/api/agent/start", async (req, res) => {
+    try {
+      const { sessionId, task, model, maxSeconds } = req.body || {};
+      if (!sessionId || !task) return res.status(400).json({ error: "BAD_REQUEST" });
+
+      const r = await postJSON("http://localhost:8001/start-session", {
+        sessionId,
+        task: task, // Python expects "task" or "taskDescription" depending on build; send both
+        taskDescription: task,
+        model,
+        maxSeconds,
+      });
+      if (!r.ok) {
+        return res.status(500).json({ error: "PY_ERROR" });
+      }
+      res.json(await r.json());
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "START_FAILED" });
+    }
+  });
+
+  app.post("/api/agent/stop", async (req, res) => {
+    try {
+      const { sessionId } = req.body || {};
+      if (!sessionId) return res.status(400).json({ error: "BAD_REQUEST" });
+      await postJSON("http://localhost:8001/stop-session", { sessionId });
+      res.json({ ok: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "STOP_FAILED" });
+    }
+  });
+
+  app.post("/api/agent/pause", async (req, res) => {
+    try {
+      const { sessionId } = req.body || {};
+      if (!sessionId) return res.status(400).json({ error: "BAD_REQUEST" });
+      await postJSON("http://localhost:8001/pause-session", { sessionId });
+      res.json({ ok: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "PAUSE_FAILED" });
+    }
+  });
+
+  app.post("/api/agent/resume", async (req, res) => {
+    try {
+      const { sessionId, maxSeconds } = req.body || {};
+      if (!sessionId) return res.status(400).json({ error: "BAD_REQUEST" });
+      await postJSON("http://localhost:8001/resume-session", { sessionId, maxSeconds });
+      res.json({ ok: true });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ error: "RESUME_FAILED" });
+    }
   });
 
   // ——— Auth ———
@@ -130,11 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             timestamp: new Date().toISOString(),
           });
         } else {
-          console.error(
-            "Python /start-session failed:",
-            r.status,
-            r.statusText
-          );
+          console.error("Python /start-session failed:", r.status, r.statusText);
           await storage.updateSession(session.id, { status: "failed" });
         }
       } catch (error) {
@@ -159,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Session not found" });
       }
 
-      // Notify Python about status transitions we care about
+      // Notify Python backend of status change
       if (updates.status) {
         try {
           await postJSON("http://localhost:8001/update-session", {
@@ -259,7 +319,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid payment signature" });
       }
 
-      // Update payment status
       const payments = await storage.getPaymentsByUser(userId);
       const payment = payments.find((p) => p.razorpayOrderId === razorpay_order_id);
 
@@ -295,56 +354,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Payment verification error:", error);
       res.status(500).json({ message: "Payment verification failed" });
-    }
-  });
-
-  // ——— Admin ———
-  app.get("/api/admin/stats", async (_req, res) => {
-    try {
-      const stats = await storage.getStats();
-      res.json(stats);
-    } catch (error) {
-      console.error("Admin stats error:", error);
-      res.status(500).json({ message: "Failed to get stats" });
-    }
-  });
-
-  app.get("/api/admin/recent-activity", async (_req, res) => {
-    try {
-      const sessions = await storage.getAllSessions();
-      const users = await storage.getAllUsers();
-
-      const recentSessions = sessions
-        .sort((a, b) => {
-          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return timeB - timeA;
-        })
-        .slice(0, 10);
-
-      const activity = recentSessions.map((session) => {
-        const user = users.find((u) => u.id === session.userId);
-        return {
-          user: {
-            email: user?.email,
-            displayName: user?.displayName,
-            subscriptionTier: user?.subscriptionTier,
-          },
-          action: session.taskDescription.substring(0, 50) + "...",
-          duration: session.durationMinutes
-            ? `${session.durationMinutes}:00`
-            : "0:00",
-          status: session.status,
-          time: session.createdAt
-            ? new Date(session.createdAt).toLocaleString()
-            : "Unknown",
-        };
-      });
-
-      res.json(activity);
-    } catch (error) {
-      console.error("Admin activity error:", error);
-      res.status(500).json({ message: "Failed to get recent activity" });
     }
   });
 
