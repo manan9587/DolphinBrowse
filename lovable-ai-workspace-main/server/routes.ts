@@ -77,7 +77,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     // Validate actual file type
     try {
-      const detected = await fileTypeFromFile(`/tmp/uploads/${filename}`);
+      const uploadDir = "/tmp/uploads";
+      const filePath = path.join(uploadDir, filename);
+      const resolvedPath = path.resolve(filePath);
+      if (!resolvedPath.startsWith(path.resolve(uploadDir) + path.sep)) {
+        return res.status(400).json({ error: 'Invalid file path' });
+      }
+      const detected = await fileTypeFromFile(resolvedPath);
     // Validate actual file type
     try {
       const detected = await fileTypeFromFile(`/tmp/uploads/${filename}`);
