@@ -34,7 +34,10 @@ export function FileUpload() {
         <p>Drag & drop a file here, or click to select</p>
       </div>
       {fileId && (
-        <button onClick={handleAnalyze} className="btn btn-primary">
+        <button
+          onClick={handleAnalyze}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
           Analyze & Download Remarks
         </button>
       )}
