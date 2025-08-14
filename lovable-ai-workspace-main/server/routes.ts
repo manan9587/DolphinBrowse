@@ -78,7 +78,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Validate actual file type
     try {
       const detected = await fileTypeFromFile(`/tmp/uploads/${filename}`);
-      if (!detected) {
+    // Validate actual file type
+    try {
+      const detected = await fileTypeFromFile(`/tmp/uploads/${filename}`);
+      if (!detected || !allowed.includes(detected.ext)) {
         return res.status(400).json({ error: 'Unsupported file type' });
       }
     } catch {
