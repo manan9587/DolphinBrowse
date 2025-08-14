@@ -57,7 +57,10 @@ async def analyze_file(file_id: str):
         raise HTTPException(status_code=403, detail="Path traversal detected")
     fp = FileProcessor()
     analysis = fp.analyze(str(resolved_path))
-    out = f'/tmp/remarks_{file_id}.xlsx'
+    safe_file_id = sanitize_file_id(file_id)
+    upload_path = f'/tmp/uploads/{safe_file_id}'
+    fp = FileProcessor()
+    out = f'/tmp/remarks_{safe_file_id}.xlsx'
     fp.generate_remarks(analysis, out)
     return FileResponse(
         out,
