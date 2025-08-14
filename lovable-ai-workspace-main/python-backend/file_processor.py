@@ -47,7 +47,16 @@ app = FastAPI()
 async def analyze_file(file_id: str):
     upload_path = f'/tmp/uploads/{file_id}'
     fp = FileProcessor()
-    analysis = fp.analyze(upload_path)
+    uploads_dir = Path('/tmp/uploads')
+    requested_path = uploads_dir / file_id
+    try:
+        resolved_path = requested_path.resolve(strict=False)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file path")
+    if not str(resolved_path).startswith(str(uploads_dir.resolve())):
+        raise HTTPException(status_code=403, detail="Path traversal detected")
+    fp = FileProcessor()
+    analysis = fp.analyze(str(resolved_path))
     out = f'/tmp/remarks_{file_id}.xlsx'
     fp.generate_remarks(analysis, out)
     return FileResponse(
