@@ -5,11 +5,10 @@ import { storage } from "./storage";
 import { verifyFirebaseToken } from "./services/auth";
 import { createRazorpayOrder, verifyRazorpayPayment } from "./services/payment";
 import { sendEmail } from "./services/email";
-import { insertUserSchema, insertSessionSchema, insertActivityLogSchema, insertUsageTrackingSchema, insertPaymentSchema } from "@shared/schema";
+import { insertUserSchema, insertSessionSchema, insertActivityLogSchema, insertUsageTrackingSchema, insertPaymentSchema, automationSessionSchema } from "@shared/schema";
 import { z } from "zod";
-
-// WebSocket connection tracking
-const sessionConnections = new Map<string, Set<WebSocket>>();
+import { subscribe, unsubscribe, broadcast } from "./services/websocket-manager";
+import { startAutomation, updateAutomationStatus } from "./services/python-agent-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -23,13 +22,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data.toString());
-        
         if (message.type === 'subscribe' && message.sessionId) {
-          // Subscribe to session updates
-          if (!sessionConnections.has(message.sessionId)) {
-            sessionConnections.set(message.sessionId, new Set());
-          }
-          sessionConnections.get(message.sessionId)!.add(ws);
+          subscribe(message.sessionId, ws);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -37,28 +31,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('close', () => {
-      // Remove from all session subscriptions
-      for (const [sessionId, connections] of Array.from(sessionConnections.entries())) {
-        connections.delete(ws);
-        if (connections.size === 0) {
-          sessionConnections.delete(sessionId);
-        }
-      }
+      unsubscribe(ws);
     });
   });
 
-  // Broadcast message to session subscribers
-  function broadcastToSession(sessionId: string, message: any) {
-    const connections = sessionConnections.get(sessionId);
-    if (connections) {
-      const messageStr = JSON.stringify(message);
-      connections.forEach(ws => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(messageStr);
-        }
+  // Automation control routes
+  app.post('/api/automation/start', async (req, res) => {
+    try {
+      const payload = automationSessionSchema.extend({ model: z.string() }).parse(req.body);
+      await startAutomation({
+        sessionId: payload.sessionId,
+        taskDescription: payload.taskDescription,
+        model: payload.model,
       });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Automation start error:', error);
+      res.status(500).json({ message: 'Failed to start automation' });
     }
-  }
+  });
+
+  app.post('/api/automation/:id/pause', async (req, res) => {
+    try {
+      await updateAutomationStatus(req.params.id, 'paused');
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Automation pause error:', error);
+      res.status(500).json({ message: 'Failed to pause automation' });
+    }
+  });
+
+  app.post('/api/automation/:id/stop', async (req, res) => {
+    try {
+      await updateAutomationStatus(req.params.id, 'completed');
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Automation stop error:', error);
+      res.status(500).json({ message: 'Failed to stop automation' });
+    }
+  });
 
   // Auth routes
   app.post('/api/auth/verify', async (req, res) => {
@@ -131,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: 'success',
           });
 
-          broadcastToSession(session.id, {
+          broadcast(session.id, {
             type: 'status',
             data: { status: 'running' },
             timestamp: new Date().toISOString(),
@@ -175,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      broadcastToSession(id, {
+      broadcast(id, {
         type: 'status',
         data: { status: updates.status },
         timestamp: new Date().toISOString(),
@@ -364,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Broadcast to connected clients
-      broadcastToSession(sessionId, {
+      broadcast(sessionId, {
         type: 'activity',
         data: { sessionId, message, status: status || 'info' },
         timestamp: new Date().toISOString(),
@@ -385,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateSession(sessionId, { currentUrl });
 
       // Broadcast viewport update
-      broadcastToSession(sessionId, {
+      broadcast(sessionId, {
         type: 'status',
         data: { currentUrl },
         timestamp: new Date().toISOString(),
