@@ -7,6 +7,30 @@ import aiohttp
 from playwright.async_api import async_playwright, Browser, Page, BrowserContext
 import logging
 
+# Monkeypatch BaseSubprocessTransport.__del__ to silence "Event loop is closed"
+# errors that can occur when Playwright shuts down while the loop is already
+# closed.  This mirrors the behaviour in browser-use and helps keep shutdown
+# logs clean.
+from asyncio import base_subprocess
+
+_original_del = base_subprocess.BaseSubprocessTransport.__del__
+
+
+def _patched_del(self):
+    """Skip cleanup that relies on a closed loop and ignore noisy errors."""
+    try:
+        if hasattr(self, "_loop") and self._loop and self._loop.is_closed():
+            return
+        _original_del(self)
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            pass
+        else:
+            raise
+
+
+base_subprocess.BaseSubprocessTransport.__del__ = _patched_del
+
 logger = logging.getLogger(__name__)
 
 class BrowserAutomation:

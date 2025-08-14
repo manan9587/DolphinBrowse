@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { BrowserViewport } from '@/components/browser-viewport';
 import { ActivityLog } from '@/components/activity-log';
 import { TaskControl } from '@/components/task-control';
+import { FileUpload } from '@/components/FileUpload';
 import { useToast } from '@/hooks/use-toast';
 import type { ActivityLog as ActivityLogType, Session } from '@shared/schema';
 
@@ -180,7 +181,8 @@ export default function Dashboard() {
             sessionStatus={sessionStatus}
             remainingTime={remainingTime}
           />
-          
+          <FileUpload />
+
           <ActivityLog activities={activities} />
         </div>
 

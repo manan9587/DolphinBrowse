@@ -7,6 +7,10 @@ import { createRazorpayOrder, verifyRazorpayPayment } from "./services/payment";
 import { sendEmail } from "./services/email";
 import { insertUserSchema, insertSessionSchema, insertActivityLogSchema, insertUsageTrackingSchema, insertPaymentSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import { fileTypeFromFile } from "file-type";
+
+const upload = multer({ dest: "/tmp/uploads" });
 
 // WebSocket connection tracking
 const sessionConnections = new Map<string, Set<WebSocket>>();
@@ -59,6 +63,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }
+
+  // File upload endpoint
+  app.post('/api/upload', upload.single('file'), async (req, res) => {
+    const { filename, originalname } = req.file!;
+    const ext = originalname.split('.').pop()?.toLowerCase();
+    const allowed = ['pdf', 'docx', 'xlsx', 'csv'];
+    if (!ext || !allowed.includes(ext)) {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
+    // Validate actual file type
+    try {
+      const detected = await fileTypeFromFile(`/tmp/uploads/${filename}`);
+      if (!detected) {
+        return res.status(400).json({ error: 'Unsupported file type' });
+      }
+    } catch {
+      return res.status(400).json({ error: 'Unsupported file type' });
+    }
+    res.json({ fileId: filename, originalName: originalname });
+  });
 
   // Auth routes
   app.post('/api/auth/verify', async (req, res) => {
