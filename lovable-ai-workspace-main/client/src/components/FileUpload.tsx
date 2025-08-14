@@ -24,7 +24,23 @@ export function FileUpload() {
     link.href = url;
     link.setAttribute('download', 'remarks.xlsx');
     document.body.appendChild(link);
-    link.click();
+    setError(null);
+    try {
+      const response = await axios.get(`/api/files/${fileId}/analyze`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'remarks.xlsx');
+      document.body.appendChild(link);
+      link.click();
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+        "Failed to analyze the file. Please try again later."
+      );
+    }
   };
 
   return (
