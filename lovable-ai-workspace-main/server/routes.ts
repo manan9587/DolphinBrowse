@@ -66,7 +66,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // File upload endpoint
   app.post('/api/upload', upload.single('file'), async (req, res) => {
-    const { filename, originalname } = req.file!;
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const { filename, originalname } = req.file;
     const ext = originalname.split('.').pop()?.toLowerCase();
     const allowed = ['pdf', 'docx', 'xlsx', 'csv'];
     if (!ext || !allowed.includes(ext)) {
